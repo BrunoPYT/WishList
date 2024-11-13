@@ -59,6 +59,7 @@ class WishList extends BaseLoop implements PropelSearchLoopInterface
             Argument::createIntListTypeArgument('customer_id'),
             Argument::createAlphaNumStringTypeArgument('code'),
             Argument::createBooleanTypeArgument('default'),
+            Argument::createBooleanTypeArgument('is_type'),
         );
     }
 
@@ -102,6 +103,10 @@ class WishList extends BaseLoop implements PropelSearchLoopInterface
             $wishList->filterByDefault($default);
         }
 
+        if (null !== $isType = $this->getIsType()) {
+            $wishList->filterByIsType($isType);
+        }
+
         return $wishList;
     }
 
@@ -124,6 +129,7 @@ class WishList extends BaseLoop implements PropelSearchLoopInterface
             $loopResultRow
                 ->set("ID", $wishlist->getId())
                 ->set("DEFAULT", $wishlist->getDefault())
+                ->set("IS_TYPE", $wishlist->getIsType())
                 ->set("TITLE", $wishlist->getTitle())
                 ->set("CODE", $wishlist->getCode())
                 ->set("CUSTOMER_ID", $wishlist->getCustomerId())

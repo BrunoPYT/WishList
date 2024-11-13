@@ -30,7 +30,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 use Symfony\Component\HttpFoundation\Request;
 use Thelia\Controller\Front\BaseFrontController;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Thelia\Core\HttpFoundation\JsonResponse;
 use Thelia\Core\Security\SecurityContext;
 use Thelia\Model\ProductQuery;
 use TheliaSmarty\Template\Plugins\Security;
@@ -258,6 +258,60 @@ class WishListController extends BaseFrontController
         $wishList = $wishListService->duplicateWishList($wishListId, $wishListTitle);
 
         return OpenApiService::jsonResponse($this->getOpenApiWishList($wishList->getId(), $modelFactory, $wishListService));
+    }
+
+    /**
+     * @Route("/duplicate_as_type/{wishListId}", name="duplicate_as_type", methods="POST")
+     * @OA\Post(
+     *     path="/wishlist/duplicate_as_type/{wishListId}",
+     *     tags={"WishList"},
+     *     summary="Duplicate a wishlist as a wish list type",
+     *     @OA\Parameter(
+     *         in="path",
+     *         name="wishListId",
+     *         @OA\Schema(
+     *           type="integer"
+     *         )
+     *      ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Success",
+     *          @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                property="wishList",
+     *                ref="#/components/schemas/WishList"
+     *             )
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="400",
+     *          description="Error"
+     *     )
+     * )
+     */
+    public function duplicateWishListAsType($wishListId, Request $request, WishListService $wishListService, ModelFactory $modelFactory): JsonResponse
+    {
+        $wishList = WishListQuery::create()->findOneById($wishListId);
+
+        if ($wishList === null) {
+            return new JsonResponse('WishList not found', Response::HTTP_NOT_FOUND);
+        }
+
+        $isWishListTypeAlreadyExists = $wishListService->isWishListTypeAlreadyExists($wishList);
+        if ($isWishListTypeAlreadyExists) {
+            return new JsonResponse(
+                'Wish List Type already exists',
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
+
+        $wishListType = $wishListService->cloneWishList($wishListId);
+        $wishListType
+            ->setIsType(1)
+            ->save();
+
+        return OpenApiService::jsonResponse($this->getOpenApiWishList($wishListType->getId(), $modelFactory, $wishListService));
     }
 
     /**

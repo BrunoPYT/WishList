@@ -331,7 +331,8 @@ class WishListService
             ->setCustomerId($customerId)
             ->setSessionId($sessionId);
 
-        $code = $this->getWishList($newWishList);
+//        $code = $this->getWishList($newWishList);
+        $code = $this->createWishlistSlug($newWishList);
 
         $newWishList
             ->setCode($code)
@@ -416,5 +417,35 @@ class WishListService
         }
 
         return $wishlistHash;
+    }
+
+    public function isWishListTypeAlreadyExists(WishList $wishList): bool
+    {
+        $wishListData = array_map(static function($item) {
+            return [
+                'ProductSaleElementsId' => $item['ProductSaleElementsId'],
+                'Quantity' => $item['Quantity']
+            ];
+        }, $wishList->getWishListProducts()->toArray());
+
+        $currentWishListsType = WishListQuery::create()
+            ->filterByCustomerId($wishList->getCustomerId())
+            ->filterByIsType(1)
+            ->filterById($wishList->getId(), Criteria::NOT_EQUAL)
+            ->find();
+        foreach ($currentWishListsType as $currentWishListType) {
+            $currentWishListTypeData = array_map(static function($item) {
+                return [
+                    'ProductSaleElementsId' => $item['ProductSaleElementsId'],
+                    'Quantity' => $item['Quantity']
+                ];
+            }, $currentWishListType->getWishListProducts()->toArray());
+
+            if ($wishListData === $currentWishListTypeData) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

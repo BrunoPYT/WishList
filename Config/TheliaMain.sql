@@ -17,6 +17,7 @@ CREATE TABLE `wish_list`
     `customer_id` INTEGER,
     `session_id` VARCHAR(255),
     `default` TINYINT,
+    `is_type` TINYINT,
     `created_at` DATETIME,
     `updated_at` DATETIME,
     PRIMARY KEY (`id`),
