@@ -27,14 +27,9 @@ use OpenApi\Model\Api\ModelFactory;
 use OpenApi\Service\OpenApiService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-
 use Symfony\Component\HttpFoundation\Request;
 use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\HttpFoundation\JsonResponse;
-use Thelia\Core\Security\SecurityContext;
-use Thelia\Model\ProductQuery;
-use TheliaSmarty\Template\Plugins\Security;
-use WishList\Model\WishList;
 use WishList\Model\WishListQuery;
 use WishList\Service\WishListService;
 
@@ -641,6 +636,32 @@ class WishListController extends BaseFrontController
     public function addToCart($wishListId, WishListService $wishListService)
     {
         $wishListService->addWishListToCart($wishListId);
+
+        return new JsonResponse();
+    }
+
+    /**
+     * @Route("/cart/from-wishlist/{wishListId}", name="cart_from_wishlist", methods="POST")
+     * @OA\Post(
+     *     path="/wishlist/cart/from-wishlist/{wishListId}",
+     *     tags={"WishList"},
+     *     summary="Create cart from wishlist",
+     *     @OA\Parameter(
+     *         in="path",
+     *         name="wishListId",
+     *         @OA\Schema(
+     *           type="integer"
+     *         )
+     *      ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Success"
+     *     )
+     * )
+     */
+    public function createCartFromWishlist($wishListId, WishListService $wishListService): JsonResponse
+    {
+        $wishListService->createCartFromWishlist($wishListId);
 
         return new JsonResponse();
     }

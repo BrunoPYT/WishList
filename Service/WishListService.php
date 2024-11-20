@@ -13,7 +13,6 @@
 namespace WishList\Service;
 
 use Cocur\Slugify\Slugify;
-use http\Exception;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -300,20 +299,39 @@ class WishListService
         $wishList = $this->getWishListObject($wishListId, $customerId, $sessionId);
 
         if (null !== $wishList) {
-            $cart = $this->requestStack->getCurrentRequest()?->getSession()->getSessionCart($this->eventDispatcher);
+            $this->addWishlistProductsToCart($wishList);
+        }
+    }
 
-            foreach ($wishList->getWishListProducts() as $wishListProduct) {
-                $event = new CartEvent($cart);
-                $event
-                    ->setProduct($wishListProduct->getProductSaleElements()->getProductId())
-                    ->setProductSaleElementsId($wishListProduct->getProductSaleElementsId())
-                    ->setQuantity($wishListProduct->getQuantity())
-                    ->setAppend(true)
-                    ->setNewness(true)
-                ;
+    public function createCartFromWishlist($wishListId): void
+    {
+        [$customerId, $sessionId] = $this->getCurrentUserOrSession();
 
-                $this->eventDispatcher->dispatch($event, TheliaEvents::CART_ADDITEM);
-            }
+        $wishList = $this->getWishListObject($wishListId, $customerId, $sessionId);
+
+        if (null !== $wishList) {
+            // Store a new empty cart in the session.
+            $this->requestStack->getCurrentRequest()?->getSession()->clearSessionCart($this->eventDispatcher);
+
+            $this->addWishlistProductsToCart($wishList);
+        }
+    }
+
+    private function addWishlistProductsToCart(WishList $wishList): void
+    {
+        $cart = $this->requestStack->getCurrentRequest()?->getSession()->getSessionCart($this->eventDispatcher);
+
+        foreach ($wishList->getWishListProducts() as $wishListProduct) {
+            $event = new CartEvent($cart);
+            $event
+                ->setProduct($wishListProduct->getProductSaleElements()->getProductId())
+                ->setProductSaleElementsId($wishListProduct->getProductSaleElementsId())
+                ->setQuantity($wishListProduct->getQuantity())
+                ->setAppend(true)
+                ->setNewness(true)
+            ;
+
+            $this->eventDispatcher->dispatch($event, TheliaEvents::CART_ADDITEM);
         }
     }
 
