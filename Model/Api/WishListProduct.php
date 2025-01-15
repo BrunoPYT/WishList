@@ -4,6 +4,7 @@ namespace WishList\Model\Api;
 
 use OpenApi\Annotations as OA;
 use OpenApi\Model\Api\BaseApiModel;
+use Thelia\Model\Base\FeatureProduct;
 use Thelia\Model\ProductImage;
 use Thelia\Model\ProductSaleElements;
 
@@ -36,6 +37,17 @@ class WishListProduct extends BaseApiModel
      * )
      */
     protected $images;
+
+    /**
+     * @var array
+     * @OA\Property(
+     *    type="array",
+     *     @OA\Items(
+     *          ref="#/components/schemas/Feature"
+     *     )
+     * )
+     */
+    protected $features = [];
 
     /**
      * @var string
@@ -92,6 +104,38 @@ class WishListProduct extends BaseApiModel
         $wishListProduct->setImages($images);
 
         $wishListProduct->setUrl($pse->getProduct()->getUrl());
+
+        $currentProduct = $pse->getProduct();
+        $modelFactory = $this->modelFactory;
+
+        $this->features = array_filter(
+            array_map(
+                function (FeatureProduct $featureProduct) use ($modelFactory) {
+                    $propelFeature = $featureProduct->getFeature();
+                    if (null === $propelFeature) {
+                        return false;
+                    }
+
+                    if (null !== $featureProduct->getFeatureAv()) {
+                        // Temporary set only product feature av to build good feature av list
+                        $propelFeature->addFeatureAv($featureProduct->getFeatureAv());
+                    }
+                    $propelFeature->resetPartialFeatureAvs(false);
+
+                    $feature = $modelFactory->buildModel('Feature', $propelFeature);
+
+                    $propelFeature->clearFeatureAvs();
+
+                    return $feature;
+                },
+                iterator_to_array(
+                    $currentProduct->getFeatureProducts()
+                )
+            ),
+            function ($value) {
+                return $value;
+            }
+        );
 
         return $wishListProduct;
     }
@@ -201,5 +245,10 @@ class WishListProduct extends BaseApiModel
         $this->url = $url;
 
         return $this;
+    }
+
+    public function getFeatures(): array
+    {
+        return $this->features;
     }
 }

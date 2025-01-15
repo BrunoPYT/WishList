@@ -1,4 +1,5 @@
 <?php
+
 /*************************************************************************************/
 /*                                                                                   */
 /*      Thelia                                                                       */
@@ -20,6 +21,7 @@
 /*      along with this program. If not, see <http://www.gnu.org/licenses/>.         */
 /*                                                                                   */
 /*************************************************************************************/
+
 namespace WishList\Controller\Front\Api;
 
 use OpenApi\Annotations as OA;
@@ -101,11 +103,45 @@ class WishListController extends BaseFrontController
     {
         $wishList = WishListQuery::create()->filterByCode($code)->findOne();
 
-        if (null === $wishList){
-            return new JsonResponse([],Response::HTTP_NOT_FOUND);
+        if (null === $wishList) {
+            return new JsonResponse([], Response::HTTP_NOT_FOUND);
         }
 
         return OpenApiService::jsonResponse($modelFactory->buildModel('WishList', $wishList));
+    }
+
+    /**
+     * @Route("/lite/all", name="list_all_without_products", methods="GET")
+     * @OA\Get(
+     *     path="/wishlist/lite/all",
+     *     tags={"WishList"},
+     *     summary="Get all wishlist of a customer without products",
+     *     @OA\Response(
+     *          response="200",
+     *          description="Success",
+     *          @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                  type="object",
+     *                  @OA\Property(
+     *                      property="wishList",
+     *                      ref="#/components/schemas/WishList"
+     *                  )
+     *              )
+     *          )
+     *     )
+     * )
+     */
+    public function getLiteWishLists(WishListService $wishListService, ModelFactory $modelFactory)
+    {
+        $wishLists = $wishListService->getAllWishLists();
+
+        $openApiWishLists = [];
+        foreach ($wishLists as $wishList) {
+            $openApiWishLists[] = $this->getOpenApiWishList($wishList->getId(), $modelFactory, $wishListService, true);
+        }
+
+        return OpenApiService::jsonResponse($openApiWishLists);
     }
 
     /**
@@ -135,7 +171,7 @@ class WishListController extends BaseFrontController
         $wishLists = $wishListService->getAllWishLists();
 
         $openApiWishLists = [];
-        foreach ($wishLists as $wishList){
+        foreach ($wishLists as $wishList) {
             $openApiWishLists[] = $this->getOpenApiWishList($wishList->getId(), $modelFactory, $wishListService);
         }
 
@@ -666,12 +702,16 @@ class WishListController extends BaseFrontController
         return new JsonResponse();
     }
 
-    protected function getOpenApiWishList($wishListId, ModelFactory $modelFactory, WishListService $wishListService)
+    protected function getOpenApiWishList($wishListId, ModelFactory $modelFactory, WishListService $wishListService, $lite = false)
     {
         $wishList = $wishListService->getWishList($wishListId);
 
-        if (empty($wishList)){
+        if (empty($wishList)) {
             return null;
+        }
+
+        if ($lite) {
+            return $modelFactory->buildModel('WishListLite', $wishList);
         }
 
         return $modelFactory->buildModel('WishList', $wishList);
