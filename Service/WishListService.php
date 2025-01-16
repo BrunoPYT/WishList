@@ -214,8 +214,6 @@ class WishListService
             if (null === $defaultWishList) {
                 $wishList->setDefault(1);
             }
-
-            $rewrittenUrl = $hash;
         }
 
         if (null !== $title) {
@@ -223,6 +221,8 @@ class WishListService
         }
 
         $wishList->save();
+
+        $rewrittenUrl = $this->createWishListUrl($wishList);
 
         if (null !== $rewrittenUrl) {
             $currentLang = $this->requestStack->getCurrentRequest()?->getSession()->get('thelia.current.lang');
@@ -238,6 +238,31 @@ class WishListService
         }
 
         return $wishList;
+    }
+
+    public function createWishListUrl(Wishlist $wishlist)
+    {
+        $wishListSlugBase = $wishlist->getTitle().$wishlist->getId();
+        // Create hash from liste title
+        $wishlistHash = Slugify::create()->slugify($wishListSlugBase, '-');
+
+        // Manage collisions
+        $count = 0;
+
+        while (true) {
+            if (
+                WishListQuery::create()
+                    ->filterByCode($wishlistHash)
+                    ->filterById($wishlist->getId(), Criteria::NOT_EQUAL)
+                    ->count() === 0
+            ) {
+                break;
+            }
+
+            $wishlistHash = Slugify::create()->slugify($wishListSlugBase . '-' . ++$count, '-');
+        }
+
+        return $wishlistHash;
     }
 
     public function deleteWishList($wishListId): void
